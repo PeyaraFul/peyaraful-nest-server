@@ -1,0 +1,84 @@
+const dns = require("node:dns");
+
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
+dns.setServers(["1.1.1.1", "1.0.0.1"]);
+
+const express = require("express");
+require("dotenv").config();
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const uri = process.env.MONGO_DB_URI;
+
+const app = express();
+const cors = require("cors");
+
+const port = process.env.PORT || 5000;
+
+app.use(cors());
+app.use(express.json());
+
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  },
+});
+
+const run = async () => {
+  try {
+    await client.connect();
+
+    await client.db("peyaraful-nest").command({ ping: 1 });
+
+    const database = client.db("peyaraful-nest");
+    const propertiesCollection = database.collection("properties");
+    const bookingCollection = database.collection("bookings");
+    const favoriteCollection = database.collection("favorites");
+
+    // getting properties data
+    app.get("/api/properties", async (req, res) => {
+      const cursor = propertiesCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    // getting properties data by properties id
+    app.get("/api/properties/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = {
+        _id: new ObjectId(id),
+      };
+      const result = await propertiesCollection.findOne(query);
+      res.send(result);
+    });
+
+    //getting bookings data by tenant id
+    app.get("/api/bookings/tenant/:tenantId", async (req, res) => {
+      const tenantId = req.params.tenantId;
+      const result = await bookingCollection
+        .find({ tenantId: tenantId })
+        .toArray();
+      res.send(result);
+    });
+
+    //getting favorites data by tenant id
+    app.get("/api/favorites/tenant/:tenantId", async (req, res) => {
+      const tenantId = req.params.tenantId;
+      const result = await bookingCollection
+        .find({ tenantId: tenantId })
+        .toArray();
+      res.send(result);
+    });
+  } finally {
+  }
+};
+
+run().catch(console.dir);
+
+app.get("/", (req, res) => {
+  res.send("hello world!");
+});
+
+app.listen(port, () => {
+  console.log(`server is running on port ${port}`);
+});
