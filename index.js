@@ -35,7 +35,7 @@ const run = async () => {
     const bookingCollection = database.collection("bookings");
     const favoriteCollection = database.collection("favorites");
 
-    // getting properties data
+    // getting properties all data
     app.get("/api/properties", async (req, res) => {
       const cursor = propertiesCollection.find();
       const result = await cursor.toArray();
@@ -52,6 +52,15 @@ const run = async () => {
       res.send(result);
     });
 
+    //add new properties data
+    app.post("/api/properties", async (req, res) => {
+      const property = req.body;
+      const result = await propertiesCollection.insertOne(property);
+
+      console.log(result);
+      res.send(result);
+    });
+
     //getting bookings data by tenant id
     app.get("/api/bookings/tenant/:tenantId", async (req, res) => {
       const tenantId = req.params.tenantId;
@@ -64,7 +73,7 @@ const run = async () => {
     //getting favorites data by tenant id
     app.get("/api/favorites/tenant/:tenantId", async (req, res) => {
       const tenantId = req.params.tenantId;
-      const result = await bookingCollection
+      const result = await favoriteCollection
         .find({ tenantId: tenantId })
         .toArray();
       res.send(result);
