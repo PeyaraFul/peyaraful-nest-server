@@ -61,6 +61,18 @@ const run = async () => {
       res.send(result);
     });
 
+    //update properties data by properties id
+    app.patch("/api/properties/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedData = req.body;
+
+      const result = await propertiesCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: updatedData },
+      );
+      res.send(result);
+    });
+
     //getting bookings data by tenant id
     app.get("/api/bookings/tenant/:tenantId", async (req, res) => {
       const tenantId = req.params.tenantId;
