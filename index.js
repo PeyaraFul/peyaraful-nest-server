@@ -83,11 +83,11 @@ const run = async () => {
       res.send(result);
     });
 
-    //getting bookings data by tenant id
-    app.get("/api/bookings/tenant/:tenantId", async (req, res) => {
-      const tenantId = req.params.tenantId;
+    // getting bookings data by tenant or owner id
+    app.get("/api/bookings/:id", async (req, res) => {
+      const id = req.params.id;
       const result = await bookingCollection
-        .find({ tenantId: tenantId })
+        .find({ $or: [{ tenantId: id }, { ownerId: id }] })
         .toArray();
       res.send(result);
     });
