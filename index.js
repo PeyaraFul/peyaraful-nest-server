@@ -73,6 +73,16 @@ const run = async () => {
       res.send(result);
     });
 
+    // delete my-properties data by properties id
+    app.delete("api/properties/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = {
+        _id: new ObjectId(id),
+      };
+      const result = await carCollection.deleteOne(query);
+      res.send(result);
+    });
+
     //getting bookings data by tenant id
     app.get("/api/bookings/tenant/:tenantId", async (req, res) => {
       const tenantId = req.params.tenantId;
