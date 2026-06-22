@@ -74,12 +74,12 @@ const run = async () => {
     });
 
     // delete my-properties data by properties id
-    app.delete("api/properties/:id", async (req, res) => {
+    app.delete("/api/properties/:id", async (req, res) => {
       const id = req.params.id;
       const query = {
         _id: new ObjectId(id),
       };
-      const result = await carCollection.deleteOne(query);
+      const result = await propertiesCollection.deleteOne(query);
       res.send(result);
     });
 
