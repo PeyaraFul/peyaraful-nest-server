@@ -35,6 +35,7 @@ const run = async () => {
     const bookingCollection = database.collection("bookings");
     const favoriteCollection = database.collection("favorites");
     const paymentCollection = database.collection("payments");
+    const usersCollection = database.collection("user");
 
     // getting properties all data
     app.get("/api/properties", async (req, res) => {
@@ -139,6 +140,13 @@ const run = async () => {
       const result = await favoriteCollection
         .find({ tenantId: tenantId })
         .toArray();
+      res.send(result);
+    });
+
+    //getting users data
+    app.get("/api/users", async (req, res) => {
+      const cursor = usersCollection.find();
+      const result = await cursor.toArray();
       res.send(result);
     });
   } finally {
