@@ -34,6 +34,7 @@ const run = async () => {
     const propertiesCollection = database.collection("properties");
     const bookingCollection = database.collection("bookings");
     const favoriteCollection = database.collection("favorites");
+    const paymentCollection = database.collection("payments");
 
     // getting properties all data
     app.get("/api/properties", async (req, res) => {
@@ -88,6 +89,46 @@ const run = async () => {
       const id = req.params.id;
       const result = await bookingCollection
         .find({ $or: [{ tenantId: id }, { ownerId: id }] })
+        .toArray();
+      res.send(result);
+    });
+
+    //bookingStatus update by property owner
+    app.patch("/api/bookings/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedData = req.body;
+
+      const result = await bookingCollection.updateOne(
+        {
+          _id: new ObjectId(id),
+          bookingStatusUpdatedCount: { $lt: 1 },
+        },
+        {
+          $set: updatedData,
+          $inc: { bookingStatusUpdatedCount: 1 },
+        },
+      );
+
+      if (result.matchedCount === 0) {
+        return res.status(403).send({
+          success: false,
+          message:
+            "This booking has already been updated once and cannot be modified again.",
+        });
+      }
+
+      res.send({
+        success: true,
+        message: "Booking updated successfully",
+        result,
+      });
+    });
+
+    //getting payments data by owner id
+    app.get("/api/payments/:ownerId", async (req, res) => {
+      const ownerId = req.params.ownerId;
+      const result = await paymentCollection
+        .find({ ownerId: ownerId })
         .toArray();
       res.send(result);
     });
