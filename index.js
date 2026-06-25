@@ -121,10 +121,29 @@ const run = async () => {
     //add new bookings data
     app.post("/api/createBooking", async (req, res) => {
       const booking = req.body;
+
+      const { propertyId, tenantEmail } = booking;
+      // check if this tenant already booked this property
+      const existingBooking = await bookingCollection.findOne({
+        propertyId,
+        tenantEmail,
+      });
+
+      if (existingBooking) {
+        return res.status(409).send({
+          success: false,
+          message: "You have already booked this property.",
+        });
+      }
+
+      // if not booked before, insert
       const result = await bookingCollection.insertOne(booking);
 
-      console.log(result);
-      res.send(result);
+      res.status(201).send({
+        success: true,
+        message: "Booking created successfully",
+        insertedId: result.insertedId,
+      });
     });
 
     //bookingStatus update by property owner
