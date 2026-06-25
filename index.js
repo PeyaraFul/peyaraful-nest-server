@@ -44,13 +44,29 @@ const run = async () => {
       res.send(result);
     });
 
-    // getting properties data by properties id
-    app.get("/api/properties/:id", async (req, res) => {
-      const id = req.params.id;
+    // getting approved 6 properties for featured section
+    app.get("/api/properties", async (req, res) => {
+      const query = { status: "Approved" };
+      const cursor = propertiesCollection.find(query).limit(6);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    // getting properties data by properties id for UI detials page
+    app.get("/api/properties/:propertyId", async (req, res) => {
+      const id = req.params.propertyId;
       const query = {
         _id: new ObjectId(id),
       };
       const result = await propertiesCollection.findOne(query);
+      res.send(result);
+    });
+
+    //getting properties data by owner id for UI owner dashboard page
+    app.get("/api/properties/owner/:ownerId", async (req, res) => {
+      const id = req.params.ownerId;
+
+      const result = await propertiesCollection.find({ ownerId: id }).toArray();
       res.send(result);
     });
 
@@ -125,6 +141,13 @@ const run = async () => {
       });
     });
 
+    //getting transactions data
+    app.get("/api/payments", async (req, res) => {
+      const cursor = paymentCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
     //getting payments data by owner id
     app.get("/api/payments/:ownerId", async (req, res) => {
       const ownerId = req.params.ownerId;
@@ -147,6 +170,18 @@ const run = async () => {
     app.get("/api/users", async (req, res) => {
       const cursor = usersCollection.find();
       const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    //update users role by admin id
+    app.patch("/api/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedData = req.body;
+
+      const result = await usersCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: updatedData },
+      );
       res.send(result);
     });
   } finally {
