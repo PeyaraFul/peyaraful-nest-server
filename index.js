@@ -118,6 +118,15 @@ const run = async () => {
       res.send(result);
     });
 
+    //add new bookings data
+    app.post("/api/createBooking", async (req, res) => {
+      const booking = req.body;
+      const result = await bookingCollection.insertOne(booking);
+
+      console.log(result);
+      res.send(result);
+    });
+
     //bookingStatus update by property owner
     app.patch("/api/bookings/:id", async (req, res) => {
       const id = req.params.id;
