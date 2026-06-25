@@ -37,15 +37,23 @@ const run = async () => {
     const paymentCollection = database.collection("payments");
     const usersCollection = database.collection("user");
 
-    // getting properties all data
+    // getting all properties data for admin dashboard view
     app.get("/api/properties", async (req, res) => {
       const cursor = propertiesCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     });
 
+    // getting only approved properties for All properties route
+    app.get("/api/properties/approved", async (req, res) => {
+      const query = { status: "Approved" };
+      const cursor = propertiesCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
     // getting approved 6 properties for featured section
-    app.get("/api/properties", async (req, res) => {
+    app.get("/api/properties/featured", async (req, res) => {
       const query = { status: "Approved" };
       const cursor = propertiesCollection.find(query).limit(6);
       const result = await cursor.toArray();
