@@ -148,33 +148,44 @@ const run = async () => {
 
     //bookingStatus update by property owner
     app.patch("/api/bookings/:id", async (req, res) => {
-      const id = req.params.id;
-      const updatedData = req.body;
+      try {
+        const id = req.params.id;
+        const updatedData = req.body;
 
-      const result = await bookingCollection.updateOne(
-        {
-          _id: new ObjectId(id),
-          bookingStatusUpdatedCount: { $lt: 1 },
-        },
-        {
-          $set: updatedData,
-          $inc: { bookingStatusUpdatedCount: 1 },
-        },
-      );
+        const result = await bookingCollection.updateOne(
+          {
+            _id: new ObjectId(id),
+            $or: [
+              { bookingStatusUpdatedCount: { $exists: false } },
+              { bookingStatusUpdatedCount: { $lt: 1 } },
+            ],
+          },
+          {
+            $set: updatedData,
+            $inc: { bookingStatusUpdatedCount: 1 },
+          },
+        );
 
-      if (result.matchedCount === 0) {
-        return res.status(403).send({
+        if (result.matchedCount === 0) {
+          return res.status(403).send({
+            success: false,
+            message:
+              "This booking has already been updated once and cannot be modified again.",
+          });
+        }
+
+        res.send({
+          success: true,
+          message: "Booking updated successfully",
+          result,
+        });
+      } catch (error) {
+        console.error("Booking update error:", error);
+        res.status(500).send({
           success: false,
-          message:
-            "This booking has already been updated once and cannot be modified again.",
+          message: "Failed to update booking",
         });
       }
-
-      res.send({
-        success: true,
-        message: "Booking updated successfully",
-        result,
-      });
     });
 
     //getting transactions data
@@ -200,6 +211,34 @@ const run = async () => {
         .find({ tenantId: tenantId })
         .toArray();
       res.send(result);
+    });
+
+    //creating a new favorite
+    app.post("/api/createFavorite", async (req, res) => {
+      const favorite = req.body;
+
+      const { propertyId, tenantEmail } = favorite;
+      // check if this tenant already booked this property
+      const existingFavorite = await favoriteCollection.findOne({
+        propertyId,
+        tenantEmail,
+      });
+
+      if (existingFavorite) {
+        return res.status(409).send({
+          success: false,
+          message: "Already you added this property to your favorites.",
+        });
+      }
+
+      // if not booked before, insert
+      const result = await favoriteCollection.insertOne(favorite);
+
+      res.status(201).send({
+        success: true,
+        message: "Added to favorites successfully",
+        insertedId: result.insertedId,
+      });
     });
 
     //getting users data
