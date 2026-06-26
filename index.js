@@ -60,7 +60,7 @@ const run = async () => {
       res.send(result);
     });
 
-    // getting properties data by properties id for UI detials page
+    // getting properties data by properties id for UI details page
     app.get("/api/properties/:propertyId", async (req, res) => {
       const id = req.params.propertyId;
       const query = {
@@ -95,6 +95,24 @@ const run = async () => {
       const result = await propertiesCollection.updateOne(
         { _id: new ObjectId(id) },
         { $set: updatedData },
+      );
+      res.send(result);
+    });
+
+    //add review to property
+    app.patch("/api/properties/review/:id", async (req, res) => {
+      const propertyId = req.params.id;
+      const review = req.body;
+
+      const result = await propertiesCollection.updateOne(
+        {
+          _id: new ObjectId(propertyId),
+        },
+        {
+          $push: {
+            reviews: review,
+          },
+        },
       );
       res.send(result);
     });
@@ -239,6 +257,16 @@ const run = async () => {
         message: "Added to favorites successfully",
         insertedId: result.insertedId,
       });
+    });
+
+    // delete favorites data by favorite id
+    app.delete("/api/deleteFavorite/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = {
+        _id: new ObjectId(id),
+      };
+      const result = await favoriteCollection.deleteOne(query);
+      res.send(result);
     });
 
     //getting users data
