@@ -10,8 +10,10 @@ const uri = process.env.MONGO_DB_URI;
 
 const app = express();
 const cors = require("cors");
+const { createRemoteJWKSet, jwtVerify } = require("jose-node-cjs-runtime");
 
 const port = process.env.PORT || 5000;
+const clientUrl = process.env.CLIENT_URL;
 
 app.use(cors());
 app.use(express.json());
@@ -23,6 +25,26 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+
+
+const JWKS = createRemoteJWKSet(
+  new URL(`${clientUrl}/api/auth/jwks`),
+);
+const verifyToken = async (req, res, next) => {
+  const headers = req?.headers?.authorization;
+  if (!headers) {
+    return res.status(401).json({ message: "Bad request" });
+  }
+
+  const token = headers.split(" ")[1];
+  try {
+const {payload} = await jwtVerify(token, JWKS);
+    // console.log('payload here', payload)
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid request" });
+  }
+}
 
 const run = async () => {
   try {
@@ -38,7 +60,7 @@ const run = async () => {
     const usersCollection = database.collection("user");
 
     // getting all properties data for admin dashboard view
-    app.get("/api/properties", async (req, res) => {
+    app.get("/api/properties",verifyToken, async (req, res) => {
       const cursor = propertiesCollection.find();
       const result = await cursor.toArray();
       res.send(result);
@@ -61,8 +83,10 @@ const run = async () => {
     });
 
     // getting properties data by properties id for UI details page
-    app.get("/api/properties/:propertyId", async (req, res) => {
+    app.get("/api/properties/:propertyId",verifyToken, async (req, res) => {
       const id = req.params.propertyId;
+      // const token = req.headers.authorization;
+      // console.log('token', token)
       const query = {
         _id: new ObjectId(id),
       };
@@ -71,7 +95,7 @@ const run = async () => {
     });
 
     //getting properties data by owner id for UI owner dashboard page
-    app.get("/api/properties/owner/:ownerId", async (req, res) => {
+    app.get("/api/properties/owner/:ownerId",verifyToken, async (req, res) => {
       const id = req.params.ownerId;
 
       const result = await propertiesCollection.find({ ownerId: id }).toArray();
@@ -79,7 +103,7 @@ const run = async () => {
     });
 
     //add new properties data
-    app.post("/api/properties", async (req, res) => {
+    app.post("/api/properties", verifyToken, async (req, res) => {
       const property = req.body;
       const result = await propertiesCollection.insertOne(property);
 
@@ -88,7 +112,7 @@ const run = async () => {
     });
 
     //update properties data by properties id
-    app.patch("/api/properties/:id", async (req, res) => {
+    app.patch("/api/properties/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const updatedData = req.body;
 
@@ -100,7 +124,7 @@ const run = async () => {
     });
 
     //add review to property
-    app.patch("/api/properties/review/:id", async (req, res) => {
+    app.patch("/api/properties/review/:id", verifyToken, async (req, res) => {
       const propertyId = req.params.id;
       const review = req.body;
 
@@ -118,7 +142,7 @@ const run = async () => {
     });
 
     // delete my-properties data by properties id
-    app.delete("/api/properties/:id", async (req, res) => {
+    app.delete("/api/properties/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = {
         _id: new ObjectId(id),
@@ -128,7 +152,7 @@ const run = async () => {
     });
 
     // getting bookings data by tenant or owner id
-    app.get("/api/bookings/:id", async (req, res) => {
+    app.get("/api/bookings/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const result = await bookingCollection
         .find({ $or: [{ tenantId: id }, { ownerId: id }] })
@@ -136,8 +160,15 @@ const run = async () => {
       res.send(result);
     });
 
+    // getting all bookings data for admin dashboard view
+    app.get("/api/allBookings", verifyToken, async (req, res) => {
+      const cursor = bookingCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
     //add new bookings data
-    app.post("/api/createBooking", async (req, res) => {
+    app.post("/api/createBooking", verifyToken, async (req, res) => {
       const booking = req.body;
 
       const { propertyId, tenantEmail } = booking;
@@ -165,7 +196,7 @@ const run = async () => {
     });
 
     //bookingStatus update by property owner
-    app.patch("/api/bookings/:id", async (req, res) => {
+    app.patch("/api/bookings/:id", verifyToken, async (req, res) => {
       try {
         const id = req.params.id;
         const updatedData = req.body;
@@ -206,24 +237,9 @@ const run = async () => {
       }
     });
 
-    //getting transactions data
-    app.get("/api/payments", async (req, res) => {
-      const cursor = paymentCollection.find();
-      const result = await cursor.toArray();
-      res.send(result);
-    });
-
-    //getting payments data by owner id
-    app.get("/api/payments/:ownerId", async (req, res) => {
-      const ownerId = req.params.ownerId;
-      const result = await paymentCollection
-        .find({ ownerId: ownerId })
-        .toArray();
-      res.send(result);
-    });
 
     //getting favorites data by tenant id
-    app.get("/api/favorites/tenant/:tenantId", async (req, res) => {
+    app.get("/api/favorites/tenant/:tenantId", verifyToken, async (req, res) => {
       const tenantId = req.params.tenantId;
       const result = await favoriteCollection
         .find({ tenantId: tenantId })
@@ -232,7 +248,7 @@ const run = async () => {
     });
 
     //creating a new favorite
-    app.post("/api/createFavorite", async (req, res) => {
+    app.post("/api/createFavorite", verifyToken, async (req, res) => {
       const favorite = req.body;
 
       const { propertyId, tenantEmail } = favorite;
@@ -260,7 +276,7 @@ const run = async () => {
     });
 
     // delete favorites data by favorite id
-    app.delete("/api/deleteFavorite/:id", async (req, res) => {
+    app.delete("/api/deleteFavorite/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = {
         _id: new ObjectId(id),
@@ -269,15 +285,15 @@ const run = async () => {
       res.send(result);
     });
 
-    //getting users data
-    app.get("/api/users", async (req, res) => {
+    //getting users data for admin dashboard view
+    app.get("/api/users", verifyToken, async (req, res) => {
       const cursor = usersCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     });
 
     //update users role by admin id
-    app.patch("/api/users/:id", async (req, res) => {
+    app.patch("/api/users/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const updatedData = req.body;
 
